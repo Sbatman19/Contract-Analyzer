@@ -81,8 +81,12 @@ app.post("/api/analyze", upload.single("contract"), async (req, res) => {
     if (req.file) {
       // PDF upload
       if (req.file.mimetype === "application/pdf") {
-        const pdfData = await pdf(req.file.buffer);
-        contractText = pdfData.text;
+  const pdfData = await pdf(req.file.buffer);
+  contractText = pdfData.text;
+  if (!contractText || contractText.trim().length < 100) {
+    return res.status(400).json({ error: "Could not extract text from this PDF. It may be a scanned or image-based document. Please use the Paste Text tab and copy your contract text directly instead." });
+  }
+
       } else {
         // Plain text file
         contractText = req.file.buffer.toString("utf-8");
@@ -94,7 +98,8 @@ app.post("/api/analyze", upload.single("contract"), async (req, res) => {
     }
 
     if (contractText.trim().length < 100) {
-      return res.status(400).json({ error: "Contract text is too short to analyze" });
+  return res.status(400).json({ error: "Not enough text detected. Please paste at least a few paragraphs of contract text." });
+
     }
 
     // Create analysis session
