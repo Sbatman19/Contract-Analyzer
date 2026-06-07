@@ -1,0 +1,1171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Contract Risk Analyzer — Know What You're Signing</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --ink: #0f0e0c;
+      --paper: #f5f2ec;
+      --cream: #ede9e0;
+      --accent: #c8392b;
+      --accent-dark: #a02d22;
+      --gold: #c9a84c;
+      --muted: #7a7570;
+      --border: #d8d3c8;
+      --green: #2d7a4f;
+      --yellow: #b8860b;
+      --red: #c8392b;
+      --black-risk: #1a1a1a;
+      --card: #ffffff;
+      --shadow: 0 2px 20px rgba(15,14,12,0.08);
+      --shadow-lg: 0 8px 40px rgba(15,14,12,0.14);
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 100vh;
+      font-size: 16px;
+      line-height: 1.6;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--ink);
+      padding: 0 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 64px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.25rem;
+      color: var(--paper);
+      letter-spacing: -0.01em;
+    }
+
+    .logo span { color: var(--gold); }
+
+    .header-badge {
+      font-size: 0.75rem;
+      font-weight: 500;
+      color: var(--muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 5rem 2rem 3rem;
+      text-align: center;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      background: rgba(200,57,43,0.08);
+      border: 1px solid rgba(200,57,43,0.2);
+      padding: 0.3rem 0.85rem;
+      border-radius: 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2.2rem, 5vw, 3.4rem);
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+      margin-bottom: 1.25rem;
+      color: var(--ink);
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--muted);
+      max-width: 520px;
+      margin: 0 auto 2.5rem;
+      font-weight: 300;
+    }
+
+    /* ── TRUST STRIP ── */
+    .trust-strip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .trust-item svg { color: var(--green); flex-shrink: 0; }
+
+    /* ── MAIN CARD ── */
+    .main-card {
+      max-width: 760px;
+      margin: 0 auto 2rem;
+      padding: 0 2rem;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    /* ── TABS ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 2rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .tab {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      background: var(--cream);
+      border: none;
+      cursor: pointer;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--muted);
+      transition: all 0.2s;
+      border-right: 1px solid var(--border);
+    }
+
+    .tab:last-child { border-right: none; }
+    .tab.active { background: var(--ink); color: var(--paper); }
+    .tab:hover:not(.active) { background: var(--border); }
+
+    /* ── UPLOAD ZONE ── */
+    .upload-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      background: var(--cream);
+    }
+
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: var(--accent);
+      background: rgba(200,57,43,0.04);
+    }
+
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--ink);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+    }
+
+    .upload-icon svg { color: var(--paper); }
+
+    .upload-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.2rem;
+      margin-bottom: 0.4rem;
+    }
+
+    .upload-sub {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .upload-file-name {
+      margin-top: 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--green);
+      display: none;
+    }
+
+    /* ── TEXTAREA ── */
+    textarea {
+      width: 100%;
+      min-height: 220px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: var(--ink);
+      background: var(--cream);
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    textarea:focus { border-color: var(--ink); }
+    textarea::placeholder { color: var(--muted); }
+
+    /* ── PRICING ── */
+    .pricing-section {
+      margin-top: 2rem;
+    }
+
+    .pricing-label {
+      font-size: 0.8rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    .pricing-cards {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .price-card {
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .price-card:hover { border-color: var(--ink); }
+    .price-card.selected { border-color: var(--ink); background: var(--ink); color: var(--paper); }
+    .price-card.selected .price-sub { color: rgba(245,242,236,0.6); }
+    .price-card.selected .price-badge { background: var(--gold); color: var(--ink); }
+
+    .price-badge {
+      display: inline-block;
+      font-size: 0.65rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      background: var(--accent);
+      color: white;
+      padding: 0.2rem 0.6rem;
+      border-radius: 2rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .price-amount {
+      font-family: 'DM Serif Display', serif;
+      font-size: 2rem;
+      line-height: 1;
+      margin-bottom: 0.25rem;
+    }
+
+    .price-period {
+      font-size: 0.8rem;
+      font-weight: 500;
+      opacity: 0.7;
+    }
+
+    .price-sub {
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-top: 0.5rem;
+    }
+
+    /* ── BUTTON ── */
+    .btn-primary {
+      width: 100%;
+      margin-top: 1.5rem;
+      padding: 1rem 2rem;
+      background: var(--accent);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      letter-spacing: -0.01em;
+    }
+
+    .btn-primary:hover { background: var(--accent-dark); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(200,57,43,0.3); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* ── DISCLAIMER ── */
+    .disclaimer {
+      margin-top: 1rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ── PROGRESS ── */
+    #progress-section { display: none; }
+
+    .progress-card {
+      background: var(--ink);
+      border-radius: 12px;
+      padding: 2.5rem;
+      color: var(--paper);
+    }
+
+    .progress-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .progress-sub {
+      font-size: 0.875rem;
+      color: rgba(245,242,236,0.6);
+      margin-bottom: 2rem;
+    }
+
+    .progress-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .progress-step {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      opacity: 0.3;
+      transition: opacity 0.4s;
+    }
+
+    .progress-step.active { opacity: 1; }
+    .progress-step.done { opacity: 0.7; }
+
+    .step-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 2px solid rgba(245,242,236,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      font-weight: 700;
+      transition: all 0.4s;
+    }
+
+    .progress-step.active .step-dot { border-color: var(--gold); color: var(--gold); }
+    .progress-step.done .step-dot { background: var(--gold); border-color: var(--gold); color: var(--ink); }
+
+    .step-label { font-size: 0.9rem; font-weight: 500; }
+    .step-desc { font-size: 0.78rem; color: rgba(245,242,236,0.5); }
+
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(201,168,76,0.3);
+      border-top-color: var(--gold);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin-left: auto;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── RESULTS ── */
+    #results-section { display: none; }
+
+    .results-header {
+      background: var(--ink);
+      border-radius: 12px;
+      padding: 2rem 2.5rem;
+      color: var(--paper);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .results-title { font-family: 'DM Serif Display', serif; font-size: 1.6rem; margin-bottom: 0.25rem; }
+    .results-meta { font-size: 0.82rem; color: rgba(245,242,236,0.5); }
+
+    .risk-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1.25rem;
+      border-radius: 2rem;
+      font-weight: 700;
+      font-size: 0.875rem;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+
+    .risk-LOW { background: rgba(45,122,79,0.2); color: #6fcf97; border: 1px solid rgba(45,122,79,0.4); }
+    .risk-MODERATE { background: rgba(184,134,11,0.2); color: #f2c94c; border: 1px solid rgba(184,134,11,0.4); }
+    .risk-HIGH { background: rgba(200,57,43,0.2); color: #eb5757; border: 1px solid rgba(200,57,43,0.4); }
+    .risk-CRITICAL { background: rgba(26,26,26,0.6); color: #ffffff; border: 1px solid rgba(255,255,255,0.3); }
+
+    /* ── CRITICAL FLAGS ── */
+    .critical-flags {
+      background: rgba(200,57,43,0.06);
+      border: 1px solid rgba(200,57,43,0.2);
+      border-left: 4px solid var(--accent);
+      border-radius: 8px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .critical-flags h3 {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+    }
+
+    .flag-item {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+
+    .flag-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); margin-top: 0.45rem; flex-shrink: 0; }
+
+    /* ── SECTION TITLE ── */
+    .section-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.15rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    /* ── CLAUSE CARDS ── */
+    .clause-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .clause-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+
+    .clause-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.875rem 1.25rem;
+      cursor: pointer;
+      background: var(--card);
+      transition: background 0.15s;
+    }
+
+    .clause-header:hover { background: var(--cream); }
+
+    .rating-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.2rem 0.7rem;
+      border-radius: 2rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    }
+
+    .rating-GREEN { background: rgba(45,122,79,0.1); color: var(--green); border: 1px solid rgba(45,122,79,0.25); }
+    .rating-YELLOW { background: rgba(184,134,11,0.1); color: var(--yellow); border: 1px solid rgba(184,134,11,0.25); }
+    .rating-RED { background: rgba(200,57,43,0.1); color: var(--red); border: 1px solid rgba(200,57,43,0.25); }
+    .rating-BLACK { background: #1a1a1a; color: #ffffff; border: 1px solid #444; }
+
+    .clause-name { font-weight: 600; font-size: 0.9rem; flex: 1; }
+    .clause-chevron { color: var(--muted); font-size: 0.75rem; transition: transform 0.2s; }
+    .clause-card.open .clause-chevron { transform: rotate(180deg); }
+
+    .clause-body {
+      display: none;
+      padding: 1rem 1.25rem 1.25rem;
+      border-top: 1px solid var(--border);
+      background: var(--cream);
+    }
+
+    .clause-card.open .clause-body { display: block; }
+
+    .clause-explanation { font-size: 0.875rem; color: var(--ink); margin-bottom: 0.75rem; }
+
+    .clause-action {
+      display: flex;
+      gap: 0.75rem;
+      align-items: flex-start;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.75rem 1rem;
+      font-size: 0.82rem;
+    }
+
+    .action-label {
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      flex-shrink: 0;
+      margin-top: 0.1rem;
+    }
+
+    /* ── CHECKLIST ── */
+    .checklist {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.625rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .checklist li {
+      display: flex;
+      gap: 0.875rem;
+      align-items: flex-start;
+      font-size: 0.875rem;
+      padding: 0.75rem 1rem;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+    }
+
+    .check-num {
+      width: 22px;
+      height: 22px;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.65rem;
+      font-weight: 700;
+      flex-shrink: 0;
+      margin-top: 0.05rem;
+    }
+
+    /* ── BOTTOM LINE ── */
+    .bottom-line {
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 10px;
+      padding: 1.75rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .bottom-line h3 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+      color: var(--gold);
+    }
+
+    .bottom-line p { font-size: 0.9rem; line-height: 1.7; color: rgba(245,242,236,0.85); }
+
+    /* ── LEGAL NOTICE ── */
+    .legal-notice {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-align: center;
+      padding: 1rem 2rem 2rem;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* ── HOW IT WORKS ── */
+    .how-it-works {
+      max-width: 760px;
+      margin: 0 auto 4rem;
+      padding: 0 2rem;
+    }
+
+    .how-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.5rem;
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    @media (max-width: 600px) { .steps-grid { grid-template-columns: 1fr 1fr; } .pricing-cards { grid-template-columns: 1fr; } }
+
+    .step-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem;
+      text-align: center;
+    }
+
+    .step-num {
+      width: 36px;
+      height: 36px;
+      background: var(--ink);
+      color: var(--paper);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'DM Serif Display', serif;
+      font-size: 1rem;
+      margin: 0 auto 0.75rem;
+    }
+
+    .step-name { font-weight: 600; font-size: 0.875rem; margin-bottom: 0.35rem; }
+    .step-desc-card { font-size: 0.78rem; color: var(--muted); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fade-up { animation: fadeUp 0.5s ease forwards; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Contract Risk <span>Analyzer</span></div>
+  <div class="header-badge">AI-Powered · 4-Agent Pipeline</div>
+</header>
+
+<!-- UPLOAD SECTION -->
+<div id="upload-section">
+  <div class="hero">
+    <div class="eyebrow">Know before you sign</div>
+    <h1>Your contract, <em>analyzed</em><br>in plain English</h1>
+    <p class="hero-sub">Upload any contract — freelance, vendor, employment, NDA, or SaaS. Our 4-agent AI pipeline flags every risk and tells you exactly what to ask before signing.</p>
+
+    <div class="trust-strip">
+      <div class="trust-item">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        10 clause categories analyzed
+      </div>
+      <div class="trust-item">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        GREEN to BLACK risk scoring
+      </div>
+      <div class="trust-item">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        Pre-signing checklist included
+      </div>
+    </div>
+  </div>
+
+  <div class="main-card">
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" onclick="switchTab('upload')">📄 Upload PDF</button>
+        <button class="tab" onclick="switchTab('paste')">📋 Paste Text</button>
+      </div>
+
+      <!-- Upload tab -->
+      <div id="tab-upload">
+        <div class="upload-zone" id="drop-zone">
+          <input type="file" id="file-input" accept=".pdf,.txt,.doc" onchange="handleFileSelect(this)" />
+          <div class="upload-icon">
+            <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+            </svg>
+          </div>
+          <div class="upload-title">Drop your contract here</div>
+          <div class="upload-sub">PDF or TXT · Up to 10MB · Your document stays private</div>
+          <div class="upload-file-name" id="file-name-display"></div>
+        </div>
+      </div>
+
+      <!-- Paste tab -->
+      <div id="tab-paste" style="display:none;">
+        <textarea id="contract-text" placeholder="Paste your contract text here...&#10;&#10;The full agreement, terms and conditions, NDA, or any other contract document you need analyzed."></textarea>
+      </div>
+
+      <!-- Pricing -->
+      <div class="pricing-section">
+        <div class="pricing-label">Choose your plan</div>
+        <div class="pricing-cards">
+          <div class="price-card selected" id="plan-single" onclick="selectPlan('single')">
+            <div class="price-badge">One-time</div>
+            <div class="price-amount">$9</div>
+            <div class="price-period">per report</div>
+            <div class="price-sub">Full analysis, one contract</div>
+          </div>
+          <div class="price-card" id="plan-monthly" onclick="selectPlan('monthly')">
+            <div class="price-badge">Best value</div>
+            <div class="price-amount">$29</div>
+            <div class="price-period">per month</div>
+            <div class="price-sub">Unlimited reports, cancel anytime</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="analyze-btn" onclick="startAnalysis()">
+        Analyze My Contract →
+      </button>
+
+      <p class="disclaimer">Secure payment via Stripe · No contract data stored after analysis · Not legal advice</p>
+    </div>
+  </div>
+
+  <!-- How it works -->
+  <div class="how-it-works">
+    <div class="how-title">How it works</div>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-num">1</div>
+        <div class="step-name">Intake</div>
+        <div class="step-desc-card">Identifies contract type, parties, and immediate red flags</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">2</div>
+        <div class="step-name">Extraction</div>
+        <div class="step-desc-card">Pulls every clause into 10 risk categories</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">3</div>
+        <div class="step-name">Scoring</div>
+        <div class="step-desc-card">Rates each clause GREEN, YELLOW, RED, or BLACK</div>
+      </div>
+      <div class="step-card">
+        <div class="step-num">4</div>
+        <div class="step-name">Brief</div>
+        <div class="step-desc-card">Delivers plain-English report with your pre-signing checklist</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PROGRESS SECTION -->
+<div id="progress-section">
+  <div class="main-card" style="padding-top: 3rem;">
+    <div class="progress-card">
+      <div class="progress-title">Analyzing your contract</div>
+      <div class="progress-sub">4 agents working in sequence. This takes 60–90 seconds.</div>
+      <div class="progress-steps">
+        <div class="progress-step" id="step-intake">
+          <div class="step-dot">1</div>
+          <div>
+            <div class="step-label">Intake Agent</div>
+            <div class="step-desc">Identifying contract type and parties</div>
+          </div>
+          <div class="spinner" style="display:none;" id="spinner-intake"></div>
+        </div>
+        <div class="progress-step" id="step-extraction">
+          <div class="step-dot">2</div>
+          <div>
+            <div class="step-label">Clause Extraction Agent</div>
+            <div class="step-desc">Categorizing all 10 clause types</div>
+          </div>
+          <div class="spinner" style="display:none;" id="spinner-extraction"></div>
+        </div>
+        <div class="progress-step" id="step-scoring">
+          <div class="step-dot">3</div>
+          <div>
+            <div class="step-label">Risk Scoring Agent</div>
+            <div class="step-desc">Rating every clause GREEN to BLACK</div>
+          </div>
+          <div class="spinner" style="display:none;" id="spinner-scoring"></div>
+        </div>
+        <div class="progress-step" id="step-brief">
+          <div class="step-dot">4</div>
+          <div>
+            <div class="step-label">Brief Writer Agent</div>
+            <div class="step-desc">Writing your plain-English report</div>
+          </div>
+          <div class="spinner" style="display:none;" id="spinner-brief"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS SECTION -->
+<div id="results-section">
+  <div class="main-card" style="padding-top: 2rem; padding-bottom: 1rem;">
+    <div class="results-header" id="results-header">
+      <div>
+        <div class="results-title" id="results-title">Contract Risk Report</div>
+        <div class="results-meta" id="results-meta"></div>
+        <div style="margin-top:0.5rem; font-size:0.875rem; color:rgba(245,242,236,0.7);" id="results-summary"></div>
+      </div>
+      <div class="risk-badge" id="risk-badge"></div>
+    </div>
+
+    <!-- Critical Flags -->
+    <div class="critical-flags" id="critical-flags-section" style="display:none;">
+      <h3>⚠ Critical Flags</h3>
+      <div id="critical-flags-list"></div>
+    </div>
+
+    <!-- Clause Breakdown -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="section-title">Clause by Clause Breakdown</div>
+      <div class="clause-grid" id="clause-grid"></div>
+    </div>
+
+    <!-- Missing Clauses -->
+    <div class="card" id="missing-section" style="margin-bottom:1.5rem; display:none;">
+      <div class="section-title">What's Missing</div>
+      <div id="missing-list"></div>
+    </div>
+
+    <!-- Pre-signing Checklist -->
+    <div class="card" style="margin-bottom:1.5rem;">
+      <div class="section-title">Your Pre-Signing Checklist</div>
+      <ul class="checklist" id="checklist"></ul>
+    </div>
+
+    <!-- Bottom Line -->
+    <div class="bottom-line">
+      <h3>The Bottom Line</h3>
+      <p id="bottom-line-text"></p>
+    </div>
+
+    <button class="btn-primary" onclick="location.reload()" style="max-width:300px; margin: 0 auto 1rem; display:block;">
+      Analyze Another Contract →
+    </button>
+  </div>
+
+  <p class="legal-notice">This analysis is for informational purposes only and does not constitute legal advice. For contracts involving significant financial exposure or legal complexity, we recommend consulting a licensed attorney.</p>
+</div>
+
+<script>
+  let selectedPlan = 'single';
+  let selectedFile = null;
+  let currentSessionId = null;
+
+  // ── TAB SWITCHING ──
+  function switchTab(tab) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById('tab-upload').style.display = tab === 'upload' ? 'block' : 'none';
+    document.getElementById('tab-paste').style.display = tab === 'paste' ? 'block' : 'none';
+  }
+
+  // ── PLAN SELECTION ──
+  function selectPlan(plan) {
+    selectedPlan = plan;
+    document.getElementById('plan-single').classList.toggle('selected', plan === 'single');
+    document.getElementById('plan-monthly').classList.toggle('selected', plan === 'monthly');
+  }
+
+  // ── FILE HANDLING ──
+  function handleFileSelect(input) {
+    const file = input.files[0];
+    if (file) {
+      selectedFile = file;
+      const display = document.getElementById('file-name-display');
+      display.textContent = `✓ ${file.name} (${(file.size / 1024).toFixed(0)}KB)`;
+      display.style.display = 'block';
+    }
+  }
+
+  const dropZone = document.getElementById('drop-zone');
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (file) {
+      selectedFile = file;
+      document.getElementById('file-name-display').textContent = `✓ ${file.name}`;
+      document.getElementById('file-name-display').style.display = 'block';
+    }
+  });
+
+  // ── START ANALYSIS ──
+  async function startAnalysis() {
+    const btn = document.getElementById('analyze-btn');
+    const pasteText = document.getElementById('contract-text').value.trim();
+    const activeTab = document.getElementById('tab-upload').style.display !== 'none' ? 'upload' : 'paste';
+
+    if (activeTab === 'upload' && !selectedFile) {
+      alert('Please upload a contract file first.');
+      return;
+    }
+    if (activeTab === 'paste' && pasteText.length < 100) {
+      alert('Please paste your contract text (at least 100 characters).');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Processing...';
+
+    try {
+      // Upload contract
+      const formData = new FormData();
+      if (activeTab === 'upload' && selectedFile) {
+        formData.append('contract', selectedFile);
+      } else {
+        formData.append('text', pasteText);
+      }
+
+      const uploadRes = await fetch('/api/analyze', { method: 'POST', body: formData });
+      const uploadData = await uploadRes.json();
+
+      if (!uploadData.sessionId) throw new Error('Upload failed');
+      currentSessionId = uploadData.sessionId;
+
+      // Create Stripe checkout
+      const checkoutRes = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: selectedPlan, sessionId: currentSessionId })
+      });
+      const checkoutData = await checkoutRes.json();
+
+      if (checkoutData.url) {
+        window.location.href = checkoutData.url;
+      } else {
+        throw new Error('Payment setup failed');
+      }
+    } catch (err) {
+      alert('Something went wrong. Please try again.');
+      btn.disabled = false;
+      btn.textContent = 'Analyze My Contract →';
+    }
+  }
+
+  // ── POST-PAYMENT: CHECK URL ──
+  async function checkPostPayment() {
+    const params = new URLSearchParams(window.location.search);
+    const analysisId = params.get('analysis_id');
+    const stripeSessionId = params.get('session_id');
+
+    if (analysisId && stripeSessionId) {
+      // Mark as paid and run analysis
+      showProgress();
+
+      // Give webhook a moment to process
+      await new Promise(r => setTimeout(r, 2000));
+
+      const evtSource = new EventSource(`/api/run-analysis`);
+
+      // Use fetch with POST instead
+      const response = await fetch('/api/run-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: analysisId })
+      });
+
+      if (response.headers.get('content-type')?.includes('text/event-stream')) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          const text = decoder.decode(value);
+          const lines = text.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.type === 'progress') updateProgress(data.stage);
+                if (data.type === 'complete') showResults(data.result);
+                if (data.type === 'error') alert(data.message);
+              } catch (e) {}
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // ── PROGRESS UI ──
+  function showProgress() {
+    document.getElementById('upload-section').style.display = 'none';
+    document.getElementById('progress-section').style.display = 'block';
+    setStepActive('intake');
+  }
+
+  function setStepActive(stage) {
+    const stages = ['intake', 'extraction', 'scoring', 'brief'];
+    const idx = stages.indexOf(stage);
+    stages.forEach((s, i) => {
+      const step = document.getElementById(`step-${s}`);
+      const spinner = document.getElementById(`spinner-${s}`);
+      step.classList.remove('active', 'done');
+      spinner.style.display = 'none';
+      if (i < idx) step.classList.add('done');
+      if (i === idx) { step.classList.add('active'); spinner.style.display = 'block'; }
+    });
+  }
+
+  function updateProgress(stage) {
+    const stageMap = { intake: 'intake', extraction: 'extraction', scoring: 'scoring', brief: 'brief' };
+    if (stageMap[stage]) setStepActive(stageMap[stage]);
+  }
+
+  // ── RESULTS UI ──
+  function showResults(result) {
+    document.getElementById('progress-section').style.display = 'none';
+    document.getElementById('results-section').style.display = 'block';
+
+    const { intake, brief } = result;
+    const today = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    // Header
+    document.getElementById('results-title').textContent = `${intake.contractType} Risk Report`;
+    document.getElementById('results-meta').textContent = `${intake.partyA} & ${intake.partyB} · ${today}`;
+    document.getElementById('results-summary').textContent = brief.overallSummary;
+
+    const badge = document.getElementById('risk-badge');
+    badge.textContent = brief.overallRiskLevel;
+    badge.className = `risk-badge risk-${brief.overallRiskLevel}`;
+
+    // Critical flags
+    if (brief.criticalFlags && brief.criticalFlags.length > 0) {
+      document.getElementById('critical-flags-section').style.display = 'block';
+      const list = document.getElementById('critical-flags-list');
+      list.innerHTML = brief.criticalFlags.map(f => `
+        <div class="flag-item">
+          <div class="flag-dot"></div>
+          <span>${f}</span>
+        </div>`).join('');
+    }
+
+    // Clause breakdown
+    const clauseNames = {
+      paymentTerms: 'Payment Terms',
+      liabilityLimitations: 'Liability & Limitations',
+      intellectualProperty: 'Intellectual Property',
+      termination: 'Termination',
+      confidentiality: 'Confidentiality & NDA',
+      indemnification: 'Indemnification',
+      disputeResolution: 'Dispute Resolution',
+      nonCompete: 'Non-Compete & Non-Solicitation',
+      autoRenewal: 'Auto-Renewal',
+      otherSignificantClauses: 'Other Significant Clauses'
+    };
+
+    const grid = document.getElementById('clause-grid');
+    grid.innerHTML = '';
+
+    if (brief.clauseBreakdown && brief.clauseBreakdown.length > 0) {
+      brief.clauseBreakdown.forEach((clause, i) => {
+        const card = document.createElement('div');
+        card.className = 'clause-card';
+        card.innerHTML = `
+          <div class="clause-header" onclick="toggleClause(this)">
+            <span class="rating-pill rating-${clause.rating}">${ratingDot(clause.rating)} ${clause.rating}</span>
+            <span class="clause-name">${clause.category}</span>
+            <span class="clause-chevron">▼</span>
+          </div>
+          <div class="clause-body">
+            <div class="clause-explanation">${clause.plainEnglishExplanation}</div>
+            ${clause.action ? `
+            <div class="clause-action">
+              <span class="action-label">Action</span>
+              <span>${clause.action}</span>
+            </div>` : ''}
+          </div>`;
+        grid.appendChild(card);
+      });
+    }
+
+    // Missing clauses
+    if (brief.missingClauses && brief.missingClauses.length > 0) {
+      document.getElementById('missing-section').style.display = 'block';
+      document.getElementById('missing-list').innerHTML = brief.missingClauses.map(m => `
+        <div class="flag-item" style="margin-bottom:0.5rem;">
+          <div class="flag-dot" style="background:var(--yellow)"></div>
+          <span style="font-size:0.875rem;">${m}</span>
+        </div>`).join('');
+    }
+
+    // Checklist
+    const checklist = document.getElementById('checklist');
+    checklist.innerHTML = (brief.preSigningChecklist || []).map((item, i) => `
+      <li>
+        <div class="check-num">${i + 1}</div>
+        <span>${item}</span>
+      </li>`).join('');
+
+    // Bottom line
+    document.getElementById('bottom-line-text').textContent = brief.bottomLine;
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function ratingDot(rating) {
+    const dots = { GREEN: '●', YELLOW: '●', RED: '●', BLACK: '●' };
+    return dots[rating] || '●';
+  }
+
+  function toggleClause(header) {
+    header.parentElement.classList.toggle('open');
+  }
+
+  // Init
+  checkPostPayment();
+</script>
+</body>
+</html>
