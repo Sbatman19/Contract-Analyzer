@@ -6,7 +6,7 @@ const MODEL = "claude-sonnet-4-5";
 async function runAgent(systemPrompt, userContent) {
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 2000,
+    max_tokens: 1000,
     messages: [{ role: "user", content: userContent }],
     system: systemPrompt,
   });
