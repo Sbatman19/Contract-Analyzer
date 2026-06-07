@@ -135,6 +135,12 @@ app.post("/api/run-analysis", async (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  const keepAlive = setInterval(() => {
+  res.write(`data: ${JSON.stringify({ type: "ping" })}\n\n`);
+}, 15000);
+
+
 
   const sendProgress = (stage, message) => {
     res.write(`data: ${JSON.stringify({ type: "progress", stage, message })}\n\n`);
@@ -150,7 +156,8 @@ app.post("/api/run-analysis", async (req, res) => {
     res.write(`data: ${JSON.stringify({ type: "error", message: "Analysis failed. Please try again." })}\n\n`);
   }
 
-  res.end();
+  clearInterval(keepAlive);
+res.end();
 });
 
 // ─── GET RESULT ────────────────────────────────────────────────────────────
