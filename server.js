@@ -98,6 +98,11 @@ app.post("/api/analyze", upload.single("contract"), async (req, res) => {
       return res.status(400).json({ error: "Not enough text detected. Please paste at least a few paragraphs of contract text." });
     }
 
+    // Hard cap at ~20 pages (40,000 characters)
+    if (contractText.trim().length > 40000) {
+      contractText = contractText.trim().substring(0, 40000);
+    }
+
     const sessionId = `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     sessions.set(sessionId, {
       contractText,
