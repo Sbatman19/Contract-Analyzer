@@ -3,18 +3,17 @@ const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-5";
 
-
-async function runAgent(systemPrompt, userContent) {
+async function runAgent(systemPrompt, userContent, maxTokens) {
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 1000,
+    max_tokens: maxTokens,
     messages: [{ role: "user", content: userContent }],
     system: systemPrompt,
   });
   return response.content[0].text;
 }
 
-// AGENT 1 — CONTRACT INTAKE AGENT
+// AGENT 1 — CONTRACT INTAKE AGENT (500 tokens — just key info extraction)
 async function intakeAgent(contractText) {
   const system = `You are the Contract Intake Agent for Contract Risk Analyzer. You are the first step in a 4-agent contract analysis pipeline.
 
@@ -32,9 +31,9 @@ You MUST respond with ONLY a valid JSON object in this exact format, no other te
   "contractLength": "string - approximate length description"
 }
 
-Identify contract types accurately: freelance service agreement, client retainer, vendor contract, SaaS subscription, employment agreement, contractor agreement, NDA, partnership agreement, or other.`;
+Identify contract types accurately: freelance service agreement, client retainer, vendor contract, SaaS subscription, employment agreement, contractor agreement, NDA, partnership agreement, real estate listing agreement, or other.`;
 
-  const result = await runAgent(system, `Analyze this contract:\n\n${contractText}`);
+  const result = await runAgent(system, `Analyze this contract:\n\n${contractText}`, 500);
   
   try {
     const cleaned = result.replace(/```json\n?|\n?```/g, "").trim();
@@ -53,7 +52,7 @@ Identify contract types accurately: freelance service agreement, client retainer
   }
 }
 
-// AGENT 2 — CLAUSE EXTRACTION AGENT
+// AGENT 2 — CLAUSE EXTRACTION AGENT (1500 tokens — needs room for all 10 categories)
 async function clauseExtractionAgent(contractText, intakeSummary) {
   const system = `You are the Clause Extraction Agent for Contract Risk Analyzer. You receive a full contract and extract every significant clause into 10 categorized buckets.
 
@@ -72,7 +71,7 @@ You MUST respond with ONLY a valid JSON object in this exact format, no other te
 }
 
 For ABSENT clauses, the content should explain the implication of the absence for this contract type.
-Be thorough — the Risk Scoring Agent depends on your completeness.`;
+Keep each content field concise — 1-2 sentences max. The Risk Scoring Agent depends on your completeness.`;
 
   const userContent = `Contract Type: ${intakeSummary.contractType}
 Parties: ${intakeSummary.partyA} and ${intakeSummary.partyB}
@@ -80,7 +79,7 @@ Parties: ${intakeSummary.partyA} and ${intakeSummary.partyB}
 Full Contract:
 ${contractText}`;
 
-  const result = await runAgent(system, userContent);
+  const result = await runAgent(system, userContent, 1500);
   
   try {
     const cleaned = result.replace(/```json\n?|\n?```/g, "").trim();
@@ -90,7 +89,7 @@ ${contractText}`;
   }
 }
 
-// AGENT 3 — RISK SCORING AGENT
+// AGENT 3 — RISK SCORING AGENT (1500 tokens — scoring all 10 categories)
 async function riskScoringAgent(clauses, intakeSummary) {
   const system = `You are the Risk Scoring Agent for Contract Risk Analyzer. You score every clause using a 4-level risk rating system.
 
@@ -118,7 +117,9 @@ You MUST respond with ONLY a valid JSON object in this exact format, no other te
   },
   "overallRiskLevel": "LOW|MODERATE|HIGH|CRITICAL",
   "overallSummary": "string - 2 sentence plain English summary of overall risk"
-}`;
+}
+
+Keep rationale and action fields concise — 1 sentence each max.`;
 
   const userContent = `Contract Type: ${intakeSummary.contractType}
 Immediate Red Flags from Intake: ${intakeSummary.immediateRedFlags.join(", ") || "None"}
@@ -126,7 +127,7 @@ Immediate Red Flags from Intake: ${intakeSummary.immediateRedFlags.join(", ") ||
 Extracted Clauses:
 ${JSON.stringify(clauses, null, 2)}`;
 
-  const result = await runAgent(system, userContent);
+  const result = await runAgent(system, userContent, 1500);
   
   try {
     const cleaned = result.replace(/```json\n?|\n?```/g, "").trim();
@@ -136,7 +137,7 @@ ${JSON.stringify(clauses, null, 2)}`;
   }
 }
 
-// AGENT 4 — PLAIN ENGLISH BRIEF WRITER
+// AGENT 4 — PLAIN ENGLISH BRIEF WRITER (2500 tokens — full formatted report)
 async function briefWriterAgent(intakeSummary, clauses, scoringReport) {
   const system = `You are the Plain English Brief Writer for Contract Risk Analyzer. You write the final contract risk report in clear, jargon-free language that any business owner can immediately understand and act on.
 
@@ -151,14 +152,16 @@ You MUST respond with ONLY a valid JSON object in this exact format, no other te
     {
       "category": "string - readable category name",
       "rating": "GREEN|YELLOW|RED|BLACK",
-      "plainEnglishExplanation": "string - what this clause actually means in practice",
+      "plainEnglishExplanation": "string - what this clause actually means in practice, 1-2 sentences",
       "action": "string - specific plain English action to take, or null if GREEN"
     }
   ],
   "missingClauses": ["array of strings - plain English explanation of missing clauses that matter"],
-  "preSigningChecklist": ["array of strings - specific questions and changes to request, ordered by priority"],
+  "preSigningChecklist": ["array of strings - specific questions and changes to request, ordered by priority, max 7 items"],
   "bottomLine": "string - 3 sentences max. Is this reasonable? Most important fix? Attorney needed?"
-}`;
+}
+
+IMPORTANT: You MUST include a clauseBreakdown entry for every clause category provided. Do not skip any.`;
 
   const userContent = `Contract Type: ${intakeSummary.contractType}
 Parties: ${intakeSummary.partyA} and ${intakeSummary.partyB}
@@ -173,7 +176,7 @@ ${JSON.stringify(scoringReport.scores, null, 2)}
 Clause Details:
 ${JSON.stringify(clauses, null, 2)}`;
 
-  const result = await runAgent(system, userContent);
+  const result = await runAgent(system, userContent, 2500);
   
   try {
     const cleaned = result.replace(/```json\n?|\n?```/g, "").trim();
