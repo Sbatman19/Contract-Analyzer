@@ -12,18 +12,14 @@ const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 
 
 app.use(cors());
 app.use(express.static("public"));
-
-// Raw body for Stripe webhooks
 app.use("/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 
-// In-memory session store (replace with Redis/DB in production)
 const sessions = new Map();
 
-// ─── STRIPE: Create checkout session ───────────────────────────────────────
+// ── STRIPE: Create checkout session ────────────────────────────────────────
 app.post("/api/create-checkout", async (req, res) => {
   const { plan, sessionId } = req.body;
-
   const isSubscription = plan === "monthly";
   const priceId = isSubscription
     ? process.env.STRIPE_MONTHLY_PRICE_ID
@@ -38,7 +34,6 @@ app.post("/api/create-checkout", async (req, res) => {
       cancel_url: `${process.env.APP_URL}/?cancelled=true`,
       metadata: { analysisId: sessionId, plan },
     });
-
     res.json({ url: session.url });
   } catch (err) {
     console.error("Stripe error:", err);
@@ -46,11 +41,10 @@ app.post("/api/create-checkout", async (req, res) => {
   }
 });
 
-// ─── STRIPE: Webhook ────────────────────────────────────────────────────────
+// ── STRIPE: Webhook ─────────────────────────────────────────────────────────
 app.post("/webhook", async (req, res) => {
   const sig = req.headers["stripe-signature"];
   let event;
-
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
@@ -61,7 +55,6 @@ app.post("/webhook", async (req, res) => {
     const session = event.data.object;
     const analysisId = session.metadata.analysisId;
     const plan = session.metadata.plan;
-
     if (sessions.has(analysisId)) {
       const analysisSession = sessions.get(analysisId);
       analysisSession.paid = true;
@@ -69,26 +62,30 @@ app.post("/webhook", async (req, res) => {
       sessions.set(analysisId, analysisSession);
     }
   }
-
   res.json({ received: true });
 });
 
-// ─── UPLOAD & ANALYZE ──────────────────────────────────────────────────────
+// ── UPLOAD & ANALYZE ────────────────────────────────────────────────────────
 app.post("/api/analyze", upload.single("contract"), async (req, res) => {
   try {
     let contractText = "";
 
     if (req.file) {
-      // PDF upload
       if (req.file.mimetype === "application/pdf") {
-  const pdfData = await pdf(req.file.buffer);
-  contractText = pdfData.text;
-  if (!contractText || contractText.trim().length < 100) {
-    return res.status(400).json({ error: "Could not extract text from this PDF. It may be a scanned or image-based document. Please use the Paste Text tab and copy your contract text directly instead." });
-  }
-
+        try {
+          const pdfData = await pdf(req.file.buffer);
+          contractText = pdfData.text || "";
+          if (contractText.trim().length < 100) {
+            return res.status(400).json({
+              error: "Could not extract text from this PDF. It may be a scanned or image-based document. Please use the Paste Text tab and copy your contract text directly instead."
+            });
+          }
+        } catch (pdfErr) {
+          return res.status(400).json({
+            error: "Failed to read this PDF. Please try the Paste Text tab and paste your contract text directly."
+          });
+        }
       } else {
-        // Plain text file
         contractText = req.file.buffer.toString("utf-8");
       }
     } else if (req.body.text) {
@@ -98,13 +95,17 @@ app.post("/api/analyze", upload.single("contract"), async (req, res) => {
     }
 
     if (contractText.trim().length < 100) {
-  return res.status(400).json({ error: "Not enough text detected. Please paste at least a few paragraphs of contract text." });
-
+      return res.status(400).json({ error: "Not enough text detected. Please paste at least a few paragraphs of contract text." });
     }
 
-    // Create analysis session
     const sessionId = `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    sessions.set(sessionId, { contractText, paid: false, result: null, status: "pending" });
+    sessions.set(sessionId, {
+      contractText,
+      paid: false,
+      result: null,
+      status: "pending",
+      currentStage: null
+    });
 
     res.json({ sessionId, charCount: contractText.length });
   } catch (err) {
@@ -113,7 +114,7 @@ app.post("/api/analyze", upload.single("contract"), async (req, res) => {
   }
 });
 
-// ─── RUN ANALYSIS (after payment confirmed) ────────────────────────────────
+// ── RUN ANALYSIS (background processing + polling) ──────────────────────────
 app.post("/api/run-analysis", async (req, res) => {
   const { sessionId } = req.body;
 
@@ -128,12 +129,17 @@ app.post("/api/run-analysis", async (req, res) => {
   }
 
   if (session.result) {
-    return res.json({ result: session.result });
+    return res.json({ status: "complete", result: session.result });
   }
 
-   if (session.status === "processing") return res.json({ status: "processing" });
+  if (session.status === "processing") {
+    return res.json({ status: "processing", currentStage: session.currentStage });
+  }
+
+  // Mark as processing and run in background
   session.status = "processing";
   sessions.set(sessionId, session);
+
   (async () => {
     try {
       const result = await runContractAnalysis(session.contractText, (stage) => {
@@ -149,12 +155,11 @@ app.post("/api/run-analysis", async (req, res) => {
       sessions.set(sessionId, session);
     }
   })();
-  res.json({ status: "processing" });
+
+  res.json({ status: "processing", currentStage: "intake" });
 });
 
-});
-
-// ─── GET RESULT ────────────────────────────────────────────────────────────
+// ── GET RESULT (polling endpoint) ───────────────────────────────────────────
 app.get("/api/result/:sessionId", (req, res) => {
   const { sessionId } = req.params;
 
@@ -168,15 +173,14 @@ app.get("/api/result/:sessionId", (req, res) => {
     return res.status(403).json({ error: "Payment required" });
   }
 
-  if (!session.result) {
-    return res.status(202).json({ status: "processing" });
-  }
-
-  res.json({ result: session.result, status: session.status, currentStage: session.currentStage || 'processing' });
-
+  res.json({
+    status: session.status,
+    currentStage: session.currentStage || "processing",
+    result: session.result || null
+  });
 });
 
-// ─── SUCCESS PAGE ──────────────────────────────────────────────────────────
+// ── SUCCESS PAGE ─────────────────────────────────────────────────────────────
 app.get("/success", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
