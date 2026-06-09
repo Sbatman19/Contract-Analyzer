@@ -1,7 +1,7 @@
 const Anthropic = require("@anthropic-ai/sdk");
 const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-const MODEL = "const MODEL = "claude-sonnet-4-5";
+const MODEL = "claude-sonnet-4-20250514";
 
 async function runAgent(systemPrompt, userContent) {
   const response = await client.messages.create({
