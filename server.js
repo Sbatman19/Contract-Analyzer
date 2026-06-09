@@ -131,33 +131,27 @@ app.post("/api/run-analysis", async (req, res) => {
     return res.json({ result: session.result });
   }
 
-  // Set up SSE for progress updates
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-  res.setHeader("X-Accel-Buffering", "no");
-  const keepAlive = setInterval(() => {
-  res.write(`data: ${JSON.stringify({ type: "ping" })}\n\n`);
-}, 15000);
+   if (session.status === "processing") return res.json({ status: "processing" });
+  session.status = "processing";
+  sessions.set(sessionId, session);
+  (async () => {
+    try {
+      const result = await runContractAnalysis(session.contractText, (stage) => {
+        session.currentStage = stage;
+        sessions.set(sessionId, session);
+      });
+      session.result = result;
+      session.status = "complete";
+      sessions.set(sessionId, session);
+    } catch (err) {
+      console.error("Analysis error:", err);
+      session.status = "error";
+      sessions.set(sessionId, session);
+    }
+  })();
+  res.json({ status: "processing" });
+});
 
-
-
-  const sendProgress = (stage, message) => {
-    res.write(`data: ${JSON.stringify({ type: "progress", stage, message })}\n\n`);
-  };
-
-  try {
-    const result = await runContractAnalysis(session.contractText, sendProgress);
-    session.result = result;
-    sessions.set(sessionId, session);
-    res.write(`data: ${JSON.stringify({ type: "complete", result })}\n\n`);
-  } catch (err) {
-    console.error("Analysis error:", err);
-    res.write(`data: ${JSON.stringify({ type: "error", message: "Analysis failed. Please try again." })}\n\n`);
-  }
-
-  clearInterval(keepAlive);
-res.end();
 });
 
 // ─── GET RESULT ────────────────────────────────────────────────────────────
@@ -178,7 +172,8 @@ app.get("/api/result/:sessionId", (req, res) => {
     return res.status(202).json({ status: "processing" });
   }
 
-  res.json({ result: session.result });
+  res.json({ result: session.result, status: session.status, currentStage: session.currentStage || 'processing' });
+
 });
 
 // ─── SUCCESS PAGE ──────────────────────────────────────────────────────────
